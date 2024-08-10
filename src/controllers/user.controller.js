@@ -17,7 +17,7 @@ const registerUser = asyncHandler( async (req, res) => {
     
     // get user details from frontend
     const {username, email, fullName, password} = req.body
-    console.log("email: ", email);
+    // console.log("email: ", email);
 
     // if(fullName === ""){
     //     throw new ApiError(400, "fullname is required");
@@ -30,7 +30,7 @@ const registerUser = asyncHandler( async (req, res) => {
         }
     
     // check if user already exits (username or email)
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [{ username }, { email }]
     })
 
@@ -39,11 +39,14 @@ const registerUser = asyncHandler( async (req, res) => {
     }
     
     // check for images, check for avatar
+    // const avatarLocalPath = req.files?.avatar?.[0]?.path;
+    // const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
     const avatarLocalPath = req.files?.avatar[0]?.path;
     const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    console.log(avatarLocalPath)
 
     if(!avatarLocalPath){
-        throw new ApiError(400, "avatar file is required");
+        throw new ApiError(400, "avatar file is required 1");
     }
     
     // upload them to cloudinary, avatar
@@ -57,7 +60,7 @@ const registerUser = asyncHandler( async (req, res) => {
     // create user object - create entry in db
     const user = await User.create({
         fullName,
-        avatar: avatar.url,
+        avatar: avatar?.url ||"",
         username: username.toLowerCase(),
         coverImage: coverImage?.url || "",
         email,
