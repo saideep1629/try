@@ -5,7 +5,7 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
-
+import { json } from "express"
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
@@ -14,36 +14,45 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
 const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description} = req.body
-
+  
     if(!title && !description){
         throw new ApiError(400, "title and description are required")
     }
-
-    const videoLocalPath = req.file?.video[0]?.path;
-    console.log(videoLocalPath)
+    
+    const videoLocalPath = req.files?.video[0]?.path;
+    // console.log(videoLocalPath)
 
     if(!videoLocalPath){
         throw new ApiError(400, "video file is required")
     }
 
+    const thumbnailLocalPath = req.files?.thumbnail[0]?.path;
+    // console.log(thumbnailLocalPath)
+
+    if(!thumbnailLocalPath){
+        throw new ApiError(400, "thumbnail file is required")
+    }
+
     const videoUploaded = await uploadOnCloudinary(videoLocalPath);
-   
+    const thumbnailUploaded = await uploadOnCloudinary(thumbnailLocalPath);
+
     if(!videoUploaded){
         throw new ApiError(500, "Video upload failed")
     }
 
-    const { public_id } = videoUploaded;
+    if(!thumbnailUploaded){
+        throw new ApiError(500, "thumbnail upload failed")
+    }
 
-    const videoMetadata = await cloudinary.v2.api.resource(public_id, {
-        resource_type: 'video',
-        fields: 'duration'
-    });
+    const { duration } = videoUploaded;
+    // console.log("duration",duration)
 
-    const duration = videoMetadata.duration;
-    const owner = req.user._id;
+    const owner = req.user?._id
+    console.log(owner)
 
    const video = await Video.create({
-        videoFile: videoUploaded,
+        videoFile: videoUploaded.url,
+        thumbnail: thumbnailUploaded.url,
         owner,
         title: title,
         description: description,
@@ -65,6 +74,24 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+    // console.log("videoId",videoId)
+
+    if(!isValidObjectId(videoId)){
+        throw new ApiError(400,"Invalid videId")
+    }
+
+    const video = await Video.findById(videoId)
+    // console.log(video)
+
+    if(!video){
+        throw new ApiError(400, "Video not found")
+    }
+
+    return res.status(200)
+    .json(
+        new ApiResponse(
+            200, video, "video is found successfully"
+        ))
     //TODO: get video by id
 })
 
