@@ -48,7 +48,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
     // console.log("duration",duration)
 
     const owner = req.user?._id
-    console.log(owner)
+    // console.log(owner)
 
    const video = await Video.create({
         videoFile: videoUploaded.url,
@@ -194,10 +194,11 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Video not found")
     }
 
-    if(video.isPublished == "true"){
-        video.isPublished = "false"
+    if(video.isPublished == false){
+        await video.updateOne({ $set: { isPublished: "true" } });
     }
-    else video.isPublished == "true"
+
+    else await video.updateOne({ $set: { isPublished: "false" } });
 
     return res.status(200)
     .json(
